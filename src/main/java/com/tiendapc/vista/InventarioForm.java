@@ -33,6 +33,11 @@ public class InventarioForm extends JFrame {
     private DefaultTableModel modeloTabla;
     private JLabel lblReloj, lblTotalProductos, lblBajoStock, lblCategorias;
 
+    private CardLayout cardLayout;
+    private JPanel panelTarjetas;
+    private JButton btnNavInicio, btnNavProductos, btnNavCategorias, btnNavReportes, btnNavSalir;
+    private JLabel lblRepTotal, lblRepBajoStock, lblRepCats, lblRepValor;
+
     private final ProductoController controller;
 
     // Paleta de colores profesional
@@ -77,10 +82,18 @@ public class InventarioForm extends JFrame {
         panelCentral.setBackground(COLOR_FONDO);
         panelCentral.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        // Top: Dashboard Cards
-        panelCentral.add(crearTarjetasDashboard(), BorderLayout.NORTH);
+        cardLayout = new CardLayout();
+        panelTarjetas = new JPanel(cardLayout);
+        panelTarjetas.setBackground(COLOR_FONDO);
 
-        // Center: Formulario y Tabla divididos
+        // Vista Inicio
+        JPanel pnlInicio = new JPanel(new BorderLayout());
+        pnlInicio.setBackground(COLOR_FONDO);
+        pnlInicio.add(crearTarjetasDashboard(), BorderLayout.NORTH);
+
+        // Vista Productos
+        JPanel pnlProductos = new JPanel(new BorderLayout());
+        pnlProductos.setBackground(COLOR_FONDO);
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         splitPane.setLeftComponent(crearPanelTabla());
         splitPane.setRightComponent(crearPanelFormulario());
@@ -88,8 +101,20 @@ public class InventarioForm extends JFrame {
         splitPane.setDividerSize(6);
         splitPane.setBorder(null);
         splitPane.setBackground(COLOR_FONDO);
+        pnlProductos.add(splitPane, BorderLayout.CENTER);
 
-        panelCentral.add(splitPane, BorderLayout.CENTER);
+        // Vista Categorías
+        JPanel pnlCategorias = crearPanelCategorias();
+
+        // Vista Reportes
+        JPanel pnlReportes = crearPanelReportes();
+
+
+        panelTarjetas.add(pnlProductos, "PRODUCTOS");
+        panelTarjetas.add(pnlCategorias, "CATEGORIAS");
+        panelTarjetas.add(pnlReportes, "REPORTES");
+
+        panelCentral.add(panelTarjetas, BorderLayout.CENTER);
 
         // Footer Inferior
         panelCentral.add(crearFooter(), BorderLayout.SOUTH);
@@ -97,6 +122,7 @@ public class InventarioForm extends JFrame {
         add(panelCentral, BorderLayout.CENTER);
 
         configurarEventos();
+        actualizarNavegacion(btnNavInicio);
     }
 
     // ──────────────────────────────────────────────
@@ -136,26 +162,39 @@ public class InventarioForm extends JFrame {
         lblMenu.setBorder(new EmptyBorder(20, 20, 10, 20));
 
         panel.add(lblMenu);
-        panel.add(crearBotonNavegacion("🏠  Inicio", true));
+        
+        btnNavInicio = crearBotonNavegacion("🏠  Inicio");
+        btnNavProductos = crearBotonNavegacion("📦  Productos");
+        btnNavCategorias = crearBotonNavegacion("🏷️  Categorías");
+        btnNavReportes = crearBotonNavegacion("📊  Reportes");
+        
+        panel.add(btnNavInicio);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(btnNavProductos);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(btnNavCategorias);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(btnNavReportes);
+        
         panel.add(Box.createVerticalGlue());
 
-        JButton btnSalir = crearBotonNavegacion("🚪  Cerrar Sesión", false);
-        btnSalir.setForeground(COLOR_ROJO);
-        btnSalir.addActionListener(e -> {
+        btnNavSalir = crearBotonNavegacion("🚪  Cerrar Sesión");
+        btnNavSalir.setForeground(COLOR_ROJO);
+        btnNavSalir.addActionListener(e -> {
             new LoginForm().setVisible(true);
             this.dispose();
         });
-        panel.add(btnSalir);
+        panel.add(btnNavSalir);
         panel.add(Box.createRigidArea(new Dimension(0, 20)));
 
         return panel;
     }
 
-    private JButton crearBotonNavegacion(String texto, boolean activo) {
+    private JButton crearBotonNavegacion(String texto) {
         JButton btn = new JButton(texto);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setForeground(activo ? COLOR_ACENTO : COLOR_TEXTO);
-        btn.setBackground(activo ? COLOR_PANEL : COLOR_SIDEBAR);
+        btn.setForeground(COLOR_TEXTO);
+        btn.setBackground(COLOR_SIDEBAR);
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setHorizontalAlignment(SwingConstants.LEFT);
@@ -165,16 +204,29 @@ public class InventarioForm extends JFrame {
 
         btn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent evt) {
-                if (!activo)
-                    btn.setBackground(COLOR_PANEL);
+                if (btn.getBackground() != COLOR_PANEL)
+                    btn.setBackground(new Color(35, 35, 50));
             }
 
             public void mouseExited(MouseEvent evt) {
-                if (!activo)
+                if (btn.getBackground() != COLOR_PANEL)
                     btn.setBackground(COLOR_SIDEBAR);
             }
         });
         return btn;
+    }
+    
+    private void actualizarNavegacion(JButton btnActivo) {
+        JButton[] btns = {btnNavInicio, btnNavProductos, btnNavCategorias, btnNavReportes};
+        for (JButton b : btns) {
+            if (b == btnActivo) {
+                b.setBackground(COLOR_PANEL);
+                b.setForeground(COLOR_ACENTO);
+            } else {
+                b.setBackground(COLOR_SIDEBAR);
+                b.setForeground(COLOR_TEXTO);
+            }
+        }
     }
 
     private JPanel crearTarjetasDashboard() {
@@ -214,6 +266,67 @@ public class InventarioForm extends JFrame {
         tarjeta.add(lblIcon, BorderLayout.EAST);
 
         return tarjeta;
+    }
+
+    private JPanel crearPanelCategorias() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBackground(COLOR_FONDO);
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel lblTitulo = new JLabel("🏷️ Categorías Disponibles");
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblTitulo.setForeground(COLOR_TEXTO);
+        panel.add(lblTitulo, BorderLayout.NORTH);
+
+        JPanel pnlLista = new JPanel(new GridLayout(0, 3, 15, 15));
+        pnlLista.setBackground(COLOR_FONDO);
+        
+        String[] categorias = {"Procesador", "Memoria RAM", "Tarjeta Gráfica", "Almacenamiento", "Monitor", "Periféricos"};
+        for (String cat : categorias) {
+            JPanel pnlCat = new JPanel(new BorderLayout());
+            pnlCat.setBackground(COLOR_PANEL);
+            pnlCat.setBorder(new LineBorder(COLOR_CAMPO, 1));
+            JLabel lblCat = new JLabel(" " + cat);
+            lblCat.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            lblCat.setForeground(COLOR_TEXTO_SEC);
+            lblCat.setBorder(new EmptyBorder(15, 15, 15, 15));
+            pnlCat.add(lblCat, BorderLayout.CENTER);
+            pnlLista.add(pnlCat);
+        }
+
+        JScrollPane scroll = new JScrollPane(pnlLista);
+        scroll.setBorder(null);
+        panel.add(scroll, BorderLayout.CENTER);
+        
+        return panel;
+    }
+
+    private JPanel crearPanelReportes() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBackground(COLOR_FONDO);
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel lblTitulo = new JLabel("📊 Estadísticas de Inventario");
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblTitulo.setForeground(COLOR_TEXTO);
+        panel.add(lblTitulo, BorderLayout.NORTH);
+
+        JPanel pnlStats = new JPanel(new GridLayout(2, 2, 15, 15));
+        pnlStats.setBackground(COLOR_FONDO);
+
+        lblRepTotal = new JLabel("0");
+        lblRepBajoStock = new JLabel("0");
+        lblRepCats = new JLabel("0");
+        lblRepValor = new JLabel("$0.00");
+
+        pnlStats.add(crearTarjeta("Total de Productos", "📦", lblRepTotal, COLOR_ACENTO));
+        pnlStats.add(crearTarjeta("Stock Bajo", "⚠️", lblRepBajoStock, COLOR_AMARILLO));
+        pnlStats.add(crearTarjeta("Total de Categorías", "🏷️", lblRepCats, COLOR_VERDE));
+        pnlStats.add(crearTarjeta("Valor Total Inventario", "💰", lblRepValor, COLOR_ROJO));
+
+        panel.add(pnlStats, BorderLayout.CENTER);
+
+        return panel;
     }
 
     private JPanel crearPanelTabla() {
@@ -466,6 +579,23 @@ public class InventarioForm extends JFrame {
         btnMostrarTodos.addActionListener(e -> cargarProductos());
         txtBuscar.addActionListener(e -> accionBuscar());
 
+        btnNavInicio.addActionListener(e -> {
+            cardLayout.show(panelTarjetas, "INICIO");
+            actualizarNavegacion(btnNavInicio);
+        });
+        btnNavProductos.addActionListener(e -> {
+            cardLayout.show(panelTarjetas, "PRODUCTOS");
+            actualizarNavegacion(btnNavProductos);
+        });
+        btnNavCategorias.addActionListener(e -> {
+            cardLayout.show(panelTarjetas, "CATEGORIAS");
+            actualizarNavegacion(btnNavCategorias);
+        });
+        btnNavReportes.addActionListener(e -> {
+            cardLayout.show(panelTarjetas, "REPORTES");
+            actualizarNavegacion(btnNavReportes);
+        });
+
         tablaProductos.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 int fila = tablaProductos.getSelectedRow();
@@ -493,6 +623,14 @@ public class InventarioForm extends JFrame {
 
         int categorias = productos.stream().map(Producto::getCategoria).collect(Collectors.toSet()).size();
         lblCategorias.setText(String.valueOf(categorias));
+
+        // Reportes
+        if (lblRepTotal != null) lblRepTotal.setText(String.valueOf(productos.size()));
+        if (lblRepBajoStock != null) lblRepBajoStock.setText(String.valueOf(bajoStock));
+        if (lblRepCats != null) lblRepCats.setText(String.valueOf(categorias));
+        
+        double valorTotal = productos.stream().mapToDouble(p -> p.getPrecio() * p.getStock()).sum();
+        if (lblRepValor != null) lblRepValor.setText(String.format("$%.2f", valorTotal));
     }
 
     private void actualizarTabla(List<Producto> productos) {
